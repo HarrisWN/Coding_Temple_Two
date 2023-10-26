@@ -1,0 +1,157 @@
+---
+title: "Stats in R Assignment"
+author: "Alex Lucchesi"
+date: "2023/05/30"
+output: html_document
+---
+
+## Assignment
+
+For today's assignment, you will be given a blank notebook and a link to the [Call of Duty Dataset](https://www.kaggle.com/datasets/beridzeg45/call-of-duty-reviews) You will need to fill out the notebook and create your own code chunks to run code. Remember that we use this code without any quotation marks to create a code chunk: '`{r} '` \### Your Goal:
+
+To receive ccodit for today's assignment, you will need to:
+
+-   Import the dataset
+-   Load the dataset into a tibble
+-   Mutate a new column
+-   Create a hypothesis regarding your data and communicate that hypothesis in a scientific method.
+-   Create a notebook that has markdown cells, explaining your code and process/thoughts. **Your markdown should be well thought out and reflect a thorough analysis.**
+-   Clean the data
+-   Explore the data (include visualizations)
+-   Create a statistical test and communicate the results
+
+### IMPORT LIBRARY
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+### READ IN DATA AS TIBBLE
+
+```{r}
+whits_cod <- read.csv("/Users/burnesbrown1/Documents/Coding Temple/Coding_Temple_Two/R assignments/Call of Duty Reviews.csv",
+               sep = ',')
+
+whits_cod_tbl <- as_tibble(whits_cod)
+```
+
+### VIEW TIBBLE
+
+```{r}
+view(whits_cod_tbl)
+```
+
+# NULL HYPOTHESIS
+
+$H0$: There is no significant difference between User Compound Score and Critic Compound Score
+
+$H1$ : There is a significant difference between User Compound Score and Critic Compound Score
+
+### NAME OF COLUMNS
+
+```{r}
+names(whits_cod_tbl)
+```
+
+### LOOK FOR NULL VALUES
+
+```{r}
+colSums(is.na(whits_cod_tbl))
+sum(is.na(whits_cod_tbl))
+
+```
+
+### FORMAT COLUMN NAMES
+
+```{r}
+my_fun <- function(x){
+  names(x) <- names(x) %>% str_replace_all("\\.", "_")
+  return(x)
+}
+
+```
+
+```{r}
+whits_cod_tbl<- my_fun(whits_cod_tbl)
+whits_cod_tbl
+
+```
+
+### MUTATE TABLE TO DETERMINE RATIOS
+
+```{r}
+mutate(whits_cod_tbl, Critic_User_Ratio = Critic_Compound_Score/User_Compound_Score)
+
+```
+
+```{r}
+mutate(whits_cod_tbl, Critic_User_Sum = Critic_Compound_Score + User_Compound_Score)
+view(whits_cod_tbl)
+```
+
+```{r}
+whits_cod_tbl_fil <- whits_cod_tbl %>%
+  filter(Platform != "")
+
+view(whits_cod_tbl_fil)
+```
+
+### VISUALIZE DATA
+
+```{r}
+ggplot(data=whits_cod_tbl_fil) +
+  geom_histogram(binwidth = 0.05, aes(x = User_Compound_Score, fill = "blue"))
+```
+
+```{r}
+ggplot(data=whits_cod_tbl_fil) +
+  geom_histogram(binwidth = 0.05, aes(x = User_Compound_Score, fill = "blue"))
+```
+
+```{r}
+ggplot(data=whits_cod_tbl_fil) +
+  geom_histogram(binwidth = 0.05, aes(x = Critic_Compound_Score, fill = "purple"))
+```
+
+```{r}
+ggplot(data=whits_cod_tbl_fil) +
+  geom_histogram(binwidth = 0.05, aes(x = User_Compound_Score, fill = "blue")) + 
+  geom_histogram(binwidth = 0.05, aes(x = Critic_Compound_Score, fill = "purple"))
+
+```
+
+```{r}
+ggplot(data=whits_cod_tbl_fil, mapping = aes(Platform, User_Compound_Score)) + 
+  geom_point()
+```
+
+```{r}
+ggplot(data=whits_cod_tbl_fil, mapping = aes(Platform, Critic_Compound_Score)) + 
+  geom_point()
+```
+
+```{r}
+cor(whits_cod_tbl_fil$User_Compound_Score, whits_cod_tbl_fil$Critic_Compound_Score)
+```
+
+```{r}
+fit <- lm(User_Compound_Score~ Critic_Compound_Score, data=whits_cod_tbl_fil)
+fit <- lm(whits_cod_tbl$User_Compound_Score, whits_cod_tbl$Critic_Compound_Score)
+fit
+
+```
+
+```{r}
+summary(fit)
+```
+
+```{r}
+
+t.test(whits_cod_tbl_fil$Critic_Compound_Score, whits_cod_tbl_fil$User_Compound_Score)
+
+```
+
+### RESULTS
+
+p = 0.003 there for we can reject the null hypothesis. User Scores and Critic Scores differ. While this may be statistically significant however the difference in means is minimal so the difference is not functionally significant.
