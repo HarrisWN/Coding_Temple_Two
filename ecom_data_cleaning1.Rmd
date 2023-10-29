@@ -1,0 +1,265 @@
+# WE MADE IT, INC e-commerce analysis
+
+## Whitney Brown
+
+### IMPORTS
+
+```{r}
+library(tidyverse)
+library(tibble)
+```
+
+```{r}
+
+shopify <- read.csv("/Users/burnesbrown1/Documents/Coding Temple/Coding_Temple_Two/capstone documents/E-commerce Dataset.csv")
+```
+
+```{r}
+View(shopify)
+```
+
+```{r}
+shopify_tbl <- as.tibble(shopify)
+
+```
+
+### VIEW TIBBLE
+
+```{r}
+view(shopify_tbl)
+```
+
+# NULL HYPOTHESIS
+
+#1 $H0$: There is no statistically significant difference between profit from male and female patrons
+
+$H1$ : There is a statistically significant difference between profit of male and female patrons
+
+#2 $H0$: There is no statistically significant difference between web and mobile purchase counts
+
+$H1$ : There is a significant difference between web and mobile purchase counts
+
+#3 $H0$: There is no significant difference in the profitability of the electronics category compared to other categories
+
+$H1$ : There is a significant difference in the profitability of the electronics category electronics compared to other categories
+
+### NAME OF COLUMNS
+
+```{r}
+names(shopify_tbl)
+```
+
+### FORMAT COLUMN NAMES
+
+```{r}
+names(shopify_tbl) <- names(shopify_tbl) %>% str_to_lower()
+names(shopify_tbl)
+```
+
+### LOOK FOR NULL VALUES
+
+```{r}
+colSums(is.na(shopify_tbl))
+sum(is.na(shopify_tbl))
+
+```
+
+```{r}
+
+#null values will be replaed with 0 due to lack of a unique identifier suggeting that the sale was either cancelled or the transaction was not completed. Replacing with a mean would artificially increase profit.
+
+shopify_tbl_filled <- shopify_tbl %>%
+  mutate(across(everything(), ~ replace_na(.,0)))
+shopify_tbl_filled
+```
+
+```{r}
+colSums(is.na(shopify_tbl_filled))
+sum(is.na(shopify_tbl_filled))
+```
+
+-   Check column data types:
+
+    ```{r}
+    str(shopify_tbl_filled)
+    ```
+
+###Change the data types
+
+###Change gender and device type to be Boolean:
+
+```{r}
+shopify_tbl_filled$boolean_gender <- shopify_tbl_filled$gender == "Male"
+shopify_tbl_filled$boolean_device_type <-shopify_tbl_filled$device_type == "Web"
+```
+
+### Create a new column for numeric time
+
+```{r}
+
+time_to_seconds <- function(time_str) {
+  time_sep <- as.numeric(unlist(strsplit(time_str, ":")))
+  if (length(time_sep) == 3) {
+    return(time_sep[1] * 3600 + time_sep[2] * 60 + time_sep[3])
+  } else {
+    return(NA)  
+  }
+}
+
+shopify_tbl_filled$numeric_time <- sapply(shopify_tbl_filled$time, time_to_seconds)
+
+print(shopify_tbl_filled)
+
+
+
+
+
+
+
+
+
+
+```
+
+###Create a new column to calculate %markup
+
+```{r}
+shopify_tbl_filled$percent_markup <- (shopify_tbl_filled$profit / shopify_tbl_filled$sales) * 100
+
+```
+
+###Change order date to numeric
+
+```{r}
+shopify_tbl_filled$order_date <- as.Date(shopify_tbl_filled$order_date)
+reference_date <- as.Date("2018-01-01")  
+
+# Calculate the numeric representation of the date
+shopify_tbl_filled$numeric_order_date  <- as.numeric(shopify_tbl_filled$order_date -reference_date)
+
+```
+
+```{r}
+shopify_tbl_filled
+```
+
+```{r}
+colSums(is.na(shopify_tbl_filled))
+sum(is.na(shopify_tbl_filled))
+```
+
+###Calculate %markup by product category
+
+```{r}
+grouped_shopify_tbl_filled <- shopify_tbl_filled %>%
+  group_by(product_category, percent_markup)
+```
+
+```{r}
+grouped_shopify_tbl_filled
+```
+
+### CORRELATION
+
+#### Gender
+
+```{r}
+
+cor_gender <- cor(shopify_tbl_filled$profit, shopify_tbl_filled$boolean_gender)
+print(round(cor_gender, 2))
+```
+
+### Create a dataframe with numercical columns for correlation matrix
+
+```{r}
+numerical_shopify <- subset(shopify_tbl_filled, select = -c(order_date, time, customer_id, gender,customer_login_type, product_category, device_type, product, order_priority, payment_method, percent_markup))
+```
+
+```{r}
+numerical_shopify
+```
+
+```{r}
+correlation_matrix <- cor(numerical_shopify)
+correlation_matrix
+
+```
+
+```{r}
+heatmap(correlation_matrix, col = colorRampPalette(c("blue", "white", "red"))(100))
+View(heatmap(correlation_matrix, col = colorRampPalette(c("blue", "white", "red"))(100)))
+```
+
+### VISUALIZE DATA
+
+```{r}
+ggplot(data=numerical_shopify) +
+  geom_histogram(binwidth = 1, aes(x = sales, fill = "blue"))
+```
+
+```{r}
+pie = ggplot(numerical_shopify) +
+  geom_bar(aes(boolean_gender, fill = TRUE),
+           position = 'fill') +
+  theme(aspect.ratio = 1) +
+  labs(x=NULL, y=NULL)
+pie + coord_polar()
+```
+
+```{r}
+ggplot(data=numerical_shopify, mapping = aes(profit, boolean_gender)) + 
+  geom_point()
+```
+
+```{r}
+pie = ggplot(numerical_shopify) + 
+  geom_bar(aes(profit, fill = boolean_gender),
+           position = 'fill') +
+  theme(aspect.ratio=1)+
+  labs(x=NULL, y=NULL)
+
+pie + coord_polar()
+```
+
+
+
+```{r}
+
+t.test(numerical_shopify$boolean_gender, numerical_shopify$sales)
+
+```
+
+```{r}
+t.test(numerical_shopify$boolean_gender, numerical_shopify$profit)
+
+```
+
+```{r}
+t.test(numerical_shopify$sales, numerical_shopify$boolean_device_type)
+
+
+```
+```{r}
+fit <- lm(boolean_gender~ profit, data=numerical_shopify)
+fit <- lm(numerical_shopify$boolean_gender, numerical_shopify$profit)
+fit
+
+```
+
+
+```{r}
+summary(fit)
+```
+
+```{r}
+
+fit <- lm(boolean_gender~ sales, data=numerical_shopify)
+fit <- lm(numerical_shopify$boolean_gender, numerical_shopify$sales)
+fit
+ 
+```
+
+```{r}
+summary(fit)
+```
+### RESULTS IN REPORT
